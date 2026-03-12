@@ -62,3 +62,5 @@ build/
 
 .cursor/
 .pnpm-store/
+.gitnexus
+.claude/
