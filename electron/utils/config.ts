@@ -85,3 +85,46 @@ export const GATEWAY_CONFIG = {
   /** Startup retry interval (ms) */
   STARTUP_RETRY_INTERVAL: 1000,
 };
+
+/**
+ * IAM Authentication configuration (OAuth2)
+ * Environment variables override these defaults.
+ */
+export const IAM_CONFIG = {
+  /** IAM server host URL */
+  HOST: process.env.IAM_HOST || 'https://id-dev.item.pub',
+  /** OAuth2 client ID */
+  CLIENT_ID: process.env.IAM_CLIENT_ID || '325fa245-b086-4e70-b479-474944903f1c',
+  /** OAuth2 client secret */
+  CLIENT_SECRET: process.env.IAM_CLIENT_SECRET || 'a0cfca85-b2ee-4d40-b09f-c54e32d54fca',
+  /** Base64 Authorization header */
+  AUTHORIZATION: process.env.IAM_AUTHORIZATION || 'Basic MzI1ZmEyNDUtYjA4Ni00ZTcwLWI0NzktNDc0OTQ0OTAzZjFjOmEwY2ZjYTg1LWIyZWUtNGQ0MC1iMDlmLWM1NGUzMmQ1NGZjYQ==',
+  /** OAuth2 token endpoint path */
+  TOKEN_PATH: process.env.IAM_TOKEN_PATH || '/oauth2/token',
+  /** OAuth2 authorization endpoint path */
+  AUTHORIZE_PATH: process.env.IAM_AUTHORIZE_PATH || '/oauth2/authorize',
+  /** User info endpoint path */
+  USERINFO_PATH: process.env.IAM_USERINFO_PATH || '/user-info',
+  /** Request timeout (ms) */
+  TIMEOUT: parseInt(process.env.IAM_TIMEOUT || '30000', 10),
+  /** Whether IAM is enabled */
+  ENABLED: process.env.IAM_ENABLED !== 'false',
+} as const;
+
+
+/**
+ * Item AI Gateway configuration (company LLM proxy)
+ * Environment variables override these defaults.
+ */
+export const ITEM_GATEWAY_CONFIG = {
+  /** JWT credential endpoint */
+  JWT_URL: process.env.ITEM_JWT_URL || 'https://aiop-gateway.item.com/admin/api/credentials/jwt',
+  /** OpenAI-compatible base URL */
+  BASE_URL: process.env.ITEM_BASE_URL || 'https://aiop-gateway.item.com/proxy/openai/v1',
+  /** Fixed API key for JWT request */
+  API_KEY: process.env.ITEM_API_KEY || 'gw-Ai-Agent-prod-2000515341280743424',
+  /** Agent name sent in JWT request */
+  AGENT_NAME: process.env.ITEM_AGENT_NAME || 'openclaw',
+  /** App code sent in JWT request */
+  APP_CODE: process.env.ITEM_APP_CODE || 'clawbot',
+} as const;

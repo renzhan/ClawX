@@ -210,3 +210,134 @@ export function createHostEventSource(path = '/api/events'): EventSource {
 export function getHostApiBase(): string {
   return HOST_API_BASE;
 }
+
+// ============================================
+// IAM Authentication API (OAuth2)
+// ============================================
+
+export interface IAMUser {
+  id: string;
+  username: string;
+  email?: string;
+  displayName?: string;
+  companyCode?: string;
+}
+
+export interface IAMAuthState {
+  isAuthenticated: boolean;
+  user: IAMUser | null;
+  token: {
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt: number;
+  } | null;
+}
+
+/**
+ * Check if IAM is enabled
+ */
+export async function checkIAMEnabled(): Promise<boolean> {
+  const result = await invokeIpc<{ enabled: boolean }>('iam:isEnabled');
+  return result.enabled;
+}
+
+/**
+ * Start OAuth2 login flow (opens browser)
+ */
+export async function iamLogin(): Promise<IAMAuthState> {
+  return invokeIpc<IAMAuthState>('iam:login');
+}
+
+/**
+ * Cancel in-progress OAuth login
+ */
+export async function iamCancelLogin(): Promise<void> {
+  await invokeIpc('iam:cancelLogin');
+}
+
+/**
+ * Check authentication status
+ */
+export async function iamCheckAuth(): Promise<IAMAuthState> {
+  return invokeIpc<IAMAuthState>('iam:checkAuth');
+}
+
+/**
+ * Get current user
+ */
+export async function iamGetUser(): Promise<IAMUser | null> {
+  return invokeIpc<IAMUser | null>('iam:getUser');
+}
+
+/**
+ * Logout
+ */
+export async function iamLogout(): Promise<void> {
+  await invokeIpc('iam:logout');
+}
+
+
+// ============================================
+// Backup API
+// ============================================
+
+export interface BackupState {
+  isBackingUp: boolean;
+  lastBackupTime: string | null;
+  nextBackupWindow: string | null;
+  progress: {
+    status: string;
+    progress: number;
+    message: string;
+    currentType?: string;
+  } | null;
+}
+
+export interface BackupListItem {
+  id: string;
+  userId: string;
+  type: string;
+  createdAt: string;
+  size: number;
+}
+
+export interface RestoreResult {
+  success: boolean;
+  filesRestored: number;
+  message?: string;
+}
+
+/**
+ * Get backup status
+ */
+export async function getBackupStatus(): Promise<BackupState> {
+  const result = await invokeIpc<{ success: boolean; data?: BackupState; error?: string }>('backup:getStatus');
+  if (result.success && result.data) return result.data;
+  throw new Error(result.error || 'Failed to get backup status');
+}
+
+/**
+ * Trigger manual backup
+ */
+export async function triggerBackup(): Promise<void> {
+  const result = await invokeIpc<{ success: boolean; error?: string }>('backup:triggerNow');
+  if (!result.success) throw new Error(result.error || 'Backup trigger failed');
+}
+
+/**
+ * List cloud backups
+ */
+export async function listBackups(): Promise<BackupListItem[]> {
+  const result = await invokeIpc<{ success: boolean; data?: BackupListItem[]; error?: string }>('backup:listBackups');
+  if (result.success && result.data) return result.data;
+  throw new Error(result.error || 'Failed to list backups');
+}
+
+/**
+ * Restore a backup
+ */
+export async function restoreBackup(backupId: string, type: string): Promise<RestoreResult> {
+  const result = await invokeIpc<{ success: boolean; data?: RestoreResult; error?: string }>('backup:restore', { backupId, type });
+  if (result.success && result.data) return result.data;
+  throw new Error(result.error || 'Restore failed');
+}

@@ -121,6 +121,18 @@ Environment variables for bundled search skills:
 ### 🔐 Secure Provider Integration
 Connect to multiple AI providers (OpenAI, Anthropic, and more) with credentials stored securely in your system's native keychain. OpenAI supports both API key and browser OAuth (Codex subscription) sign-in.
 
+### ☁️ IAM Login & Cloud Backup
+Optionally enable enterprise IAM authentication to unlock automatic cloud backup of your agent configurations, skills, and memory data. Backups run once daily during a configurable time window (default 22:00–04:00), compressing and uploading data securely with your IAM token. You can also manually trigger backups or restore from cloud at any time via Settings. All IAM/backup features are controlled by environment variables and disabled by default.
+
+Environment variables for IAM and cloud backup:
+- `IAM_ENABLED`: Set to `true` to enable IAM authentication (default: `false`)
+- `IAM_API_URL`: IAM server endpoint URL
+- `IAM_TIMEOUT`: Login request timeout in milliseconds (default: `30000`)
+- `BACKUP_API_URL`: Cloud backup API endpoint URL
+- `BACKUP_TIMEOUT`: Backup upload/download timeout in milliseconds (default: `60000`)
+- `BACKUP_WINDOW_START`: Daily backup window start time (default: `22:00`)
+- `BACKUP_WINDOW_END`: Daily backup window end time (default: `04:00`)
+
 ### 🌙 Adaptive Theming
 Light mode, dark mode, or system-synchronized themes. ClawX adapts to your preferences automatically.
 
@@ -286,7 +298,9 @@ Chain multiple skills together to create sophisticated automation pipelines. Pro
 ├── electron/                 # Electron Main Process
 │   ├── api/                 # Main-side API router and handlers
 │   │   └── routes/          # RPC/HTTP proxy route modules
-│   ├── services/            # Provider, secrets and runtime services
+│   ├── services/            # Provider, secrets, IAM and backup services
+│   │   ├── backup/          # Cloud backup compression, upload, restore
+│   │   ├── iam/             # IAM authentication service
 │   │   ├── providers/       # Provider/account model sync logic
 │   │   └── secrets/         # OS keychain and secret storage
 │   ├── shared/              # Shared provider schemas/constants

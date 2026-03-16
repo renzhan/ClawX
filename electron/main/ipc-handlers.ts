@@ -42,6 +42,10 @@ import { syncLaunchAtStartupSettingFromStore } from './launch-at-startup';
 import { proxyAwareFetch } from '../utils/proxy-fetch';
 import { getRecentTokenUsageHistory } from '../utils/token-usage';
 import { getProviderService } from '../services/providers/provider-service';
+import { getIAMAuthService } from '../services/iam/iam-auth-service';
+import { setupItemProvider } from '../services/iam/item-provider-setup';
+import { getBackupService } from '../services/backup/backup-service';
+import { BackupDirectoryType } from '../services/backup/types';
 import {
   getOpenClawProviderKey,
   syncDefaultProviderToRuntime,
@@ -100,6 +104,12 @@ export function registerIpcHandlers(
 
   // Provider handlers
   registerProviderHandlers(gatewayManager);
+
+  // IAM Authentication handlers
+  registerIAMHandlers();
+
+  // Backup handlers
+  registerBackupHandlers();
 
   // Shell handlers
   registerShellHandlers();
@@ -2069,6 +2079,140 @@ function registerProviderHandlers(gatewayManager: GatewayManager): void {
       }
     }
   );
+}
+
+/**
+ * IAM Authentication IPC handlers (OAuth2 flow)
+ */
+function registerIAMHandlers(): void {
+  const iamService = getIAMAuthService();
+
+  // Check if IAM is enabled
+  ipcMain.handle('iam:isEnabled', async () => {
+    try {
+      return { success: true, enabled: iamService.isEnabled() };
+    } catch (error) {
+      logger.error('[IAM] Failed to check if enabled:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Start OAuth2 login flow (opens browser)
+  ipcMain.handle('iam:login', async () => {
+    try {
+      logger.info('[IAM] OAuth2 login request received');
+      const authState = await iamService.startOAuthLogin();
+
+      // Auto-provision Item provider with IAM user's credentials
+      if (authState.isAuthenticated && authState.user?.username) {
+        setupItemProvider(authState.user.username).catch((err) => {
+          logger.warn('[IAM] Item provider auto-setup failed (non-blocking):', err);
+        });
+      }
+
+      return { success: true, data: authState };
+    } catch (error) {
+      logger.error('[IAM] OAuth2 login failed:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  // Cancel in-progress OAuth login
+  ipcMain.handle('iam:cancelLogin', async () => {
+    try {
+      await iamService.cancelOAuthLogin();
+      return { success: true };
+    } catch (error) {
+      logger.error('[IAM] Cancel login failed:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Check authentication status
+  ipcMain.handle('iam:checkAuth', async () => {
+    try {
+      const authState = await iamService.getAuthState();
+      return { success: true, data: authState };
+    } catch (error) {
+      logger.error('[IAM] Check auth failed:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Get current user
+  ipcMain.handle('iam:getUser', async () => {
+    try {
+      const user = await iamService.getCurrentUser();
+      return { success: true, data: user };
+    } catch (error) {
+      logger.error('[IAM] Get user failed:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Logout
+  ipcMain.handle('iam:logout', async () => {
+    try {
+      await iamService.logout();
+      logger.info('[IAM] Logout successful');
+      return { success: true };
+    } catch (error) {
+      logger.error('[IAM] Logout failed:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+}
+
+/**
+ * Backup-related IPC handlers
+ */
+function registerBackupHandlers(): void {
+  const backupService = getBackupService();
+
+  // Get backup status
+  ipcMain.handle('backup:getStatus', async () => {
+    try {
+      return { success: true, data: backupService.getState() };
+    } catch (error) {
+      logger.error('[Backup] Get status failed:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Trigger manual backup
+  ipcMain.handle('backup:triggerNow', async () => {
+    try {
+      await backupService.triggerManualBackup();
+      return { success: true };
+    } catch (error) {
+      logger.error('[Backup] Manual trigger failed:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  // List cloud backups
+  ipcMain.handle('backup:listBackups', async () => {
+    try {
+      const backups = await backupService.listBackups();
+      return { success: true, data: backups };
+    } catch (error) {
+      logger.error('[Backup] List backups failed:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  // Restore a backup
+  ipcMain.handle('backup:restore', async (_, { backupId, type }: { backupId: string; type: string }) => {
+    try {
+      const dirType = type as BackupDirectoryType;
+      const result = await backupService.restoreBackup(backupId, dirType);
+      return { success: true, data: result };
+    } catch (error) {
+      logger.error('[Backup] Restore failed:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
 }
 
 /**

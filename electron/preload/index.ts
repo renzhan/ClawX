@@ -137,6 +137,18 @@ const electronAPI = {
         'openclaw:getConfigDir',
         'openclaw:getSkillsDir',
         'openclaw:getCliCommand',
+        // IAM Authentication
+        'iam:isEnabled',
+        'iam:login',
+        'iam:cancelLogin',
+        'iam:checkAuth',
+        'iam:getUser',
+        'iam:logout',
+        // Backup
+        'backup:getStatus',
+        'backup:triggerNow',
+        'backup:listBackups',
+        'backup:restore',
       ];
 
       if (validChannels.includes(channel)) {
@@ -175,6 +187,13 @@ const electronAPI = {
         'oauth:success',
         'oauth:error',
         'openclaw:cli-installed',
+        // IAM events
+        'iam:oauthStarted',
+        'iam:loginSuccess',
+        'iam:loginError',
+        // Backup events
+        'backup:statusChanged',
+        'backup:completed',
       ];
 
       if (validChannels.includes(channel)) {

@@ -121,6 +121,18 @@ Skills 页面可展示来自多个 OpenClaw 来源的技能（托管目录、wor
 ### 🔐 安全的供应商集成
 连接多个 AI 供应商（OpenAI、Anthropic 等），凭证安全存储在系统原生密钥链中。OpenAI 同时支持 API Key 与浏览器 OAuth（Codex 订阅）登录。
 
+### ☁️ IAM 登录与云端备份
+可选启用企业 IAM 认证，解锁智能体配置、技能和记忆数据的自动云端备份功能。备份在可配置的时间窗口内（默认 22:00–04:00）每日自动执行一次，使用 IAM Token 安全地压缩并上传数据。你也可以随时在设置中手动触发备份或从云端恢复。所有 IAM/备份功能通过环境变量控制，默认关闭。
+
+IAM 和云端备份相关环境变量：
+- `IAM_ENABLED`：设为 `true` 启用 IAM 认证（默认：`false`）
+- `IAM_API_URL`：IAM 服务器端点 URL
+- `IAM_TIMEOUT`：登录请求超时时间，单位毫秒（默认：`30000`）
+- `BACKUP_API_URL`：云端备份 API 端点 URL
+- `BACKUP_TIMEOUT`：备份上传/下载超时时间，单位毫秒（默认：`60000`）
+- `BACKUP_WINDOW_START`：每日备份窗口开始时间（默认：`22:00`）
+- `BACKUP_WINDOW_END`：每日备份窗口结束时间（默认：`04:00`）
+
 ### 🌙 自适应主题
 支持浅色模式、深色模式或跟随系统主题。ClawX 自动适应你的偏好设置。
 
@@ -286,7 +298,9 @@ ClawX 采用 **双进程 + Host API 统一接入架构**。渲染进程只调用
 ├── electron/                 # Electron 主进程
 │   ├── api/                 # 主进程 API 路由与处理器
 │   │   └── routes/          # RPC/HTTP 代理路由模块
-│   ├── services/            # Provider、Secrets 与运行时服务
+│   ├── services/            # Provider、Secrets、IAM 与备份服务
+│   │   ├── backup/          # 云端备份压缩、上传、恢复
+│   │   ├── iam/             # IAM 认证服务
 │   │   ├── providers/       # Provider/account 模型同步逻辑
 │   │   └── secrets/         # 系统钥匙串与密钥存储
 │   ├── shared/              # 共享 Provider schema/常量

@@ -35,6 +35,9 @@ import { deviceOAuthManager } from '../utils/device-oauth';
 import { browserOAuthManager } from '../utils/browser-oauth';
 import { whatsAppLoginManager } from '../utils/whatsapp-login';
 import { syncAllProviderAuthToRuntime } from '../services/providers/provider-runtime-sync';
+import { getIAMAuthService } from '../services/iam/iam-auth-service';
+import { setupItemProvider } from '../services/iam/item-provider-setup';
+import { getBackupService } from '../services/backup/backup-service';
 
 const WINDOWS_APP_USER_MODEL_ID = 'app.clawx.desktop';
 
@@ -292,6 +295,44 @@ async function initialize(): Promise<void> {
   // non-destructive way and never blocks startup.
   void ensurePreinstalledSkillsInstalled().catch((error) => {
     logger.warn('Failed to install preinstalled skills:', error);
+  });
+
+  // Initialize IAM authentication and backup services (non-blocking).
+  // If the user has a valid IAM token, start the backup scheduler automatically.
+  void (async () => {
+    const iamService = getIAMAuthService();
+    if (mainWindow) {
+      iamService.setMainWindow(mainWindow);
+    }
+
+    if (!iamService.isEnabled()) {
+      logger.debug('[IAM] Feature disabled, skipping initialization');
+      return;
+    }
+
+    const tokenValid = await iamService.verifyToken();
+    if (tokenValid) {
+      logger.info('[IAM] Valid token found, user is logged in');
+
+      // Auto-provision Item provider with IAM user credentials
+      const user = await iamService.getCurrentUser();
+      if (user?.username) {
+        setupItemProvider(user.username).catch((err) => {
+          logger.warn('[Item] Provider auto-setup on startup failed (non-blocking):', err);
+        });
+      }
+
+      const backupService = getBackupService();
+      if (mainWindow) {
+        backupService.setMainWindow(mainWindow);
+      }
+      await backupService.start();
+      logger.info('[Backup] Scheduler started for logged-in user');
+    } else {
+      logger.debug('[IAM] No valid token, backup scheduler not started');
+    }
+  })().catch((error) => {
+    logger.warn('Failed to initialize IAM/Backup services:', error);
   });
 
   // Bridge gateway and host-side events before any auto-start logic runs, so

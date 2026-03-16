@@ -18,6 +18,7 @@ export const PROVIDER_TYPES = [
   'minimax-portal-cn',
   'qwen-portal',
   'ollama',
+  'item',
   'custom',
 ] as const;
 export type ProviderType = (typeof PROVIDER_TYPES)[number];
@@ -34,6 +35,7 @@ export const BUILTIN_PROVIDER_TYPES = [
   'minimax-portal-cn',
   'qwen-portal',
   'ollama',
+  'item',
 ] as const;
 
 export const OLLAMA_PLACEHOLDER_API_KEY = 'ollama-local';
@@ -163,6 +165,7 @@ export const PROVIDER_TYPE_INFO: ProviderTypeInfo[] = [
   { id: 'qwen-portal', name: 'Qwen (Global)', icon: '☁️', placeholder: 'sk-...', model: 'Qwen', requiresApiKey: false, isOAuth: true, defaultModelId: 'coder-model' },
   { id: 'ark', name: 'ByteDance Ark', icon: 'A', placeholder: 'your-ark-api-key', model: 'Doubao', requiresApiKey: true, defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3', showBaseUrl: true, showModelId: true, modelIdPlaceholder: 'ep-20260228000000-xxxxx', docsUrl: 'https://www.volcengine.com/' },
   { id: 'ollama', name: 'Ollama', icon: '🦙', placeholder: 'Not required', requiresApiKey: false, defaultBaseUrl: 'http://localhost:11434/v1', showBaseUrl: true, showModelId: true, modelIdPlaceholder: 'qwen3:latest' },
+  { id: 'item', name: 'Item', icon: '🏢', placeholder: 'Auto-configured via IAM', model: 'OpenAI', requiresApiKey: true, defaultBaseUrl: 'https://aiop-gateway.item.com/proxy/openai/v1', showModelId: true, modelIdPlaceholder: 'gpt-5.1', defaultModelId: 'gpt-5.1' },
   {
     id: 'custom',
     name: 'Custom',
@@ -182,8 +185,10 @@ export function getProviderIconUrl(type: ProviderType | string): string | undefi
   return providerIcons[type];
 }
 
-/** Whether a provider's logo needs CSS invert in dark mode (all logos are monochrome) */
-export function shouldInvertInDark(_type: ProviderType | string): boolean {
+/** Whether a provider's logo needs CSS invert in dark mode (most logos are monochrome) */
+export function shouldInvertInDark(type: ProviderType | string): boolean {
+  // Item logo is already colored (purple), no invert needed
+  if (type === 'item') return false;
   return true;
 }
 

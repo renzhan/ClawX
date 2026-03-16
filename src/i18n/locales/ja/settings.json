@@ -258,6 +258,51 @@
     "installMessage": "\"openclaw\" コマンドをインストールしますか？",
     "installDetail": "~/.local/bin/openclaw が作成されます。グローバルに実行するには ~/.local/bin が PATH に含まれていることを確認してください。"
   },
+  "auth": {
+    "title": "アカウント",
+    "loggedInAs": "ログイン中",
+    "email": "メール",
+    "logout": "ログアウト",
+    "loggingOut": "ログアウト中...",
+    "goToLogin": "ログインへ",
+    "notLoggedIn": "未ログイン",
+    "notLoggedInDesc": "クラウドバックアップなどの機能を利用するにはログインしてください",
+    "logoutSuccess": "ログアウトしました",
+    "logoutFailed": "ログアウトに失敗しました"
+  },
+  "backup": {
+    "title": "クラウドバックアップ",
+    "lastBackup": "最終バックアップ",
+    "lastBackupNever": "なし",
+    "nextWindow": "次のバックアップ時間帯",
+    "backupNow": "今すぐバックアップ",
+    "backingUp": "バックアップ中...",
+    "restoreFromCloud": "クラウドから復元",
+    "restoreTitle": "クラウドバックアップから復元",
+    "restoreDesc": "復元するバックアップを選択してください。ローカルデータが上書きされます。",
+    "restoreConfirm": "復元",
+    "restoreCancel": "キャンセル",
+    "restoring": "復元中...",
+    "noBackups": "バックアップがありません",
+    "noBackupsDesc": "最初のバックアップを作成するとここに表示されます",
+    "backupType": {
+      "agent": "Agent",
+      "skill": "Skill",
+      "memory": "Memory"
+    },
+    "progress": {
+      "compressing": "圧縮中",
+      "uploading": "アップロード中",
+      "completed": "完了",
+      "failed": "失敗"
+    },
+    "backupSuccess": "バックアップが完了しました",
+    "backupFailed": "バックアップに失敗しました",
+    "restoreSuccess": "復元が完了しました。変更を適用するにはアプリを再起動してください。",
+    "restoreFailed": "復元に失敗しました",
+    "loadingBackups": "バックアップを読み込み中...",
+    "loadBackupsFailed": "バックアップリストの読み込みに失敗しました"
+  },
   "about": {
     "title": "バージョン情報",
     "appName": "ClawX",

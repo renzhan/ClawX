@@ -40,6 +40,9 @@ import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LANGUAGES } from '@/i18n';
 import { hostApiFetch } from '@/lib/host-api';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth';
+import { AuthSection } from './AuthSection';
+import { BackupSection } from './BackupSection';
 type ControlUiInfo = {
   url: string;
   token: string;
@@ -82,6 +85,7 @@ export function Settings() {
   const { status: gatewayStatus, restart: restartGateway } = useGatewayStore();
   const currentVersion = useUpdateStore((state) => state.currentVersion);
   const updateSetAutoDownload = useUpdateStore((state) => state.setAutoDownload);
+  const { iamEnabled } = useAuthStore();
   const [controlUiInfo, setControlUiInfo] = useState<ControlUiInfo | null>(null);
   const [openclawCliCommand, setOpenclawCliCommand] = useState('');
   const [openclawCliError, setOpenclawCliError] = useState<string | null>(null);
@@ -530,6 +534,31 @@ export function Settings() {
               </div>
             </div>
           </div>
+
+          {/* Auth & Backup (only when IAM is enabled) */}
+          {iamEnabled && (
+            <>
+              <Separator className="bg-black/5 dark:bg-white/5" />
+
+              {/* Account */}
+              <div>
+                <h2 className="text-3xl font-serif text-foreground mb-6 font-normal tracking-tight" style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}>
+                  {t('auth.title')}
+                </h2>
+                <AuthSection />
+              </div>
+
+              <Separator className="bg-black/5 dark:bg-white/5" />
+
+              {/* Cloud Backup */}
+              <div>
+                <h2 className="text-3xl font-serif text-foreground mb-6 font-normal tracking-tight" style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}>
+                  {t('backup.title')}
+                </h2>
+                <BackupSection />
+              </div>
+            </>
+          )}
 
           <Separator className="bg-black/5 dark:bg-white/5" />
 

@@ -8,6 +8,7 @@ import type { ErrorInfo, ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import i18n from './i18n';
 import { MainLayout } from './components/layout/MainLayout';
+import { RouteGuard } from './components/RouteGuard';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Models } from './pages/Models';
 import { Chat } from './pages/Chat';
@@ -17,6 +18,7 @@ import { Skills } from './pages/Skills';
 import { Cron } from './pages/Cron';
 import { Settings } from './pages/Settings';
 import { Setup } from './pages/Setup';
+import { Login } from './pages/Login';
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
 import { applyGatewayTransportPreference } from './lib/api-client';
@@ -158,21 +160,26 @@ function App() {
   return (
     <ErrorBoundary>
       <TooltipProvider delayDuration={300}>
-        <Routes>
-          {/* Setup wizard (shown on first launch) */}
-          <Route path="/setup/*" element={<Setup />} />
+        <RouteGuard>
+          <Routes>
+            {/* Setup wizard (shown on first launch) */}
+            <Route path="/setup/*" element={<Setup />} />
 
-          {/* Main application routes */}
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Chat />} />
-            <Route path="/models" element={<Models />} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/channels" element={<Channels />} />
-            <Route path="/skills" element={<Skills />} />
-            <Route path="/cron" element={<Cron />} />
-            <Route path="/settings/*" element={<Settings />} />
-          </Route>
-        </Routes>
+            {/* Login page (IAM authentication) */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Main application routes */}
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Chat />} />
+              <Route path="/models" element={<Models />} />
+              <Route path="/agents" element={<Agents />} />
+              <Route path="/channels" element={<Channels />} />
+              <Route path="/skills" element={<Skills />} />
+              <Route path="/cron" element={<Cron />} />
+              <Route path="/settings/*" element={<Settings />} />
+            </Route>
+          </Routes>
+        </RouteGuard>
 
         {/* Global toast notifications */}
         <Toaster

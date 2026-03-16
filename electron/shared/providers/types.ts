@@ -10,6 +10,7 @@ export const PROVIDER_TYPES = [
   'minimax-portal-cn',
   'qwen-portal',
   'ollama',
+  'item',
   'custom',
 ] as const;
 
@@ -25,6 +26,7 @@ export const BUILTIN_PROVIDER_TYPES = [
   'minimax-portal-cn',
   'qwen-portal',
   'ollama',
+  'item',
 ] as const;
 
 export type ProviderType = (typeof PROVIDER_TYPES)[number];

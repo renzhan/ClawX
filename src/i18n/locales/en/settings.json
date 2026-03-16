@@ -261,6 +261,51 @@
     "installMessage": "Install the \"openclaw\" command?",
     "installDetail": "This will create ~/.local/bin/openclaw. Ensure ~/.local/bin is on your PATH if you want to run it globally."
   },
+  "auth": {
+    "title": "Account",
+    "loggedInAs": "Logged in as",
+    "email": "Email",
+    "logout": "Logout",
+    "loggingOut": "Logging out...",
+    "goToLogin": "Go to Login",
+    "notLoggedIn": "Not logged in",
+    "notLoggedInDesc": "Sign in to access cloud backup and other features",
+    "logoutSuccess": "Logged out successfully",
+    "logoutFailed": "Failed to logout"
+  },
+  "backup": {
+    "title": "Cloud Backup",
+    "lastBackup": "Last Backup",
+    "lastBackupNever": "Never",
+    "nextWindow": "Next Backup Window",
+    "backupNow": "Backup Now",
+    "backingUp": "Backing up...",
+    "restoreFromCloud": "Restore from Cloud",
+    "restoreTitle": "Restore from Cloud Backup",
+    "restoreDesc": "Select a backup to restore. This will overwrite your local data.",
+    "restoreConfirm": "Restore",
+    "restoreCancel": "Cancel",
+    "restoring": "Restoring...",
+    "noBackups": "No backups found",
+    "noBackupsDesc": "Create your first backup to see it here",
+    "backupType": {
+      "agent": "Agent",
+      "skill": "Skill",
+      "memory": "Memory"
+    },
+    "progress": {
+      "compressing": "Compressing",
+      "uploading": "Uploading",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "backupSuccess": "Backup completed successfully",
+    "backupFailed": "Backup failed",
+    "restoreSuccess": "Restore completed. Please restart the app to apply changes.",
+    "restoreFailed": "Restore failed",
+    "loadingBackups": "Loading backups...",
+    "loadBackupsFailed": "Failed to load backup list"
+  },
   "about": {
     "title": "About",
     "appName": "ClawX",
