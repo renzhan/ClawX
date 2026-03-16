@@ -64,3 +64,9 @@ docs/pr-session-notes-*.md
 
 .cursor/
 .pnpm-store/
+.kiro/
+.claude/
+.gitnexus/
+
+# Internal docs with secrets
+IAM登录与微软邮箱集成实现文档.md

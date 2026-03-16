@@ -1,0 +1,14 @@
+{
+    "title": "欢迎使用 ClawX",
+    "subtitle": "通过 IAM 登录以访问云端功能",
+    "loginButton": "IAM 登录",
+    "waitingForBrowser": "等待浏览器中完成 IAM 登录...",
+    "browserHint": "请在浏览器中完成登录，然后返回此处",
+    "cancelLogin": "取消",
+    "errors": {
+        "loginFailed": "登录失败，请重试",
+        "networkError": "网络错误，请检查您的连接后重试",
+        "timeout": "登录超时，请重试",
+        "oauthError": "认证错误，请重试"
+    }
+}

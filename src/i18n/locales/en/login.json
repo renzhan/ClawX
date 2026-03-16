@@ -1,0 +1,14 @@
+{
+    "title": "Welcome to ClawX",
+    "subtitle": "Sign in with IAM to access cloud features",
+    "loginButton": "Sign in with IAM",
+    "waitingForBrowser": "Waiting for IAM login in browser...",
+    "browserHint": "Complete the login in your browser, then return here",
+    "cancelLogin": "Cancel",
+    "errors": {
+        "loginFailed": "Login failed. Please try again.",
+        "networkError": "Network error. Please check your connection and try again.",
+        "timeout": "Login timed out. Please try again.",
+        "oauthError": "Authentication error. Please try again."
+    }
+}

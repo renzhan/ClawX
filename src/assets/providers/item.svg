@@ -1,0 +1,9 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <title>Item</title>
+  <!-- Purple hexagon -->
+  <path d="M12 1.5L21.5 6.75V17.25L12 22.5L2.5 17.25V6.75L12 1.5Z" fill="#7C3AED"/>
+  <!-- White "i" letter: dot -->
+  <rect x="10.5" y="7" width="3" height="3" rx="0.5" fill="white"/>
+  <!-- White "i" letter: body -->
+  <rect x="10.5" y="11.5" width="3" height="6" rx="0.5" fill="white"/>
+</svg>

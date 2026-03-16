@@ -1,0 +1,14 @@
+{
+    "title": "ClawXへようこそ",
+    "subtitle": "IAMでサインインしてクラウド機能にアクセス",
+    "loginButton": "IAMでサインイン",
+    "waitingForBrowser": "ブラウザでのIAMログインを待機中...",
+    "browserHint": "ブラウザでログインを完了してから、ここに戻ってください",
+    "cancelLogin": "キャンセル",
+    "errors": {
+        "loginFailed": "ログインに失敗しました。再試行してください",
+        "networkError": "ネットワークエラー。接続を確認して再試行してください",
+        "timeout": "ログインがタイムアウトしました。再試行してください",
+        "oauthError": "認証エラー。再試行してください"
+    }
+}
