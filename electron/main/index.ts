@@ -235,6 +235,10 @@ async function initialize(): Promise<void> {
   // Create the main window
   const window = createMainWindow();
 
+  // Register IPC handlers immediately after window creation, before the
+  // renderer has a chance to invoke them (fixes "No handler registered" race).
+  registerIpcHandlers(gatewayManager, clawHubService, window);
+
   // Create system tray
   createTray(window);
 
@@ -260,9 +264,6 @@ async function initialize(): Promise<void> {
       callback({ responseHeaders: headers });
     },
   );
-
-  // Register IPC handlers
-  registerIpcHandlers(gatewayManager, clawHubService, window);
 
   hostApiServer = startHostApiServer({
     gatewayManager,
