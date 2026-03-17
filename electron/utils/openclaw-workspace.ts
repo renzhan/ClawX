@@ -29,7 +29,7 @@ async function ensureDir(dir: string): Promise<void> {
 // ── Pure helpers (no I/O) ────────────────────────────────────────
 
 /**
- * Merge a ClawX context section into an existing file's content.
+ * Merge a Item ClawX context section into an existing file's content.
  * If markers already exist, replaces the section in-place.
  * Otherwise appends it at the end.
  */
@@ -126,9 +126,9 @@ export async function repairClawXOnlyBootstrapFiles(): Promise<void> {
       if (before === '' && after === '') {
         try {
           await unlink(filePath);
-          logger.info(`Removed ClawX-only bootstrap file for re-seeding: ${file} (${workspaceDir})`);
+          logger.info(`Removed Item ClawX-only bootstrap file for re-seeding: ${file} (${workspaceDir})`);
         } catch {
-          logger.warn(`Failed to remove ClawX-only bootstrap file: ${filePath}`);
+          logger.warn(`Failed to remove Item ClawX-only bootstrap file: ${filePath}`);
         }
       }
     }
@@ -138,14 +138,14 @@ export async function repairClawXOnlyBootstrapFiles(): Promise<void> {
 // ── Context merging ──────────────────────────────────────────────
 
 /**
- * Merge ClawX context snippets into workspace bootstrap files that
+ * Merge Item ClawX context snippets into workspace bootstrap files that
  * already exist on disk.  Returns the number of target files that were
  * skipped because they don't exist yet.
  */
 async function mergeClawXContextOnce(): Promise<number> {
   const contextDir = join(getResourcesDir(), 'context');
   if (!(await fileExists(contextDir))) {
-    logger.debug('ClawX context directory not found, skipping context merge');
+    logger.debug('Item ClawX context directory not found, skipping context merge');
     return 0;
   }
 

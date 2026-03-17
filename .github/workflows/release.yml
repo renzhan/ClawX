@@ -1,4 +1,4 @@
-# ClawX Release Workflow
+# Item ClawX Release Workflow
 # Builds and publishes releases for macOS, Windows, and Linux
 
 name: Release
@@ -165,9 +165,9 @@ jobs:
           make_latest: false
           generate_release_notes: true
           body: |
-            ## 🚀 ClawX ${{ github.ref_name }}
-            
-            ClawX - Graphical AI Assistant based on OpenClaw
+            ## 🚀 Item ClawX ${{ github.ref_name }}
+
+            Item ClawX - Graphical AI Assistant based on OpenClaw
             
             ### 📦 Downloads
             

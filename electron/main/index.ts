@@ -214,7 +214,7 @@ function createMainWindow(): BrowserWindow {
 async function initialize(): Promise<void> {
   // Initialize logger first
   logger.init();
-  logger.info('=== ClawX Application Starting ===');
+  logger.info('=== Item ClawX Application Starting ===');
   logger.debug(
     `Runtime: platform=${process.platform}/${process.arch}, electron=${process.versions.electron}, node=${process.versions.node}, packaged=${app.isPackaged}`
   );
@@ -277,7 +277,7 @@ async function initialize(): Promise<void> {
   // Note: Auto-check for updates is driven by the renderer (update store init)
   // so it respects the user's "Auto-check for updates" setting.
 
-  // Repair any bootstrap files that only contain ClawX markers (no OpenClaw
+  // Repair any bootstrap files that only contain Item ClawX markers (no OpenClaw
   // template content). This fixes a race condition where ensureClawXContext()
   // previously created the file before the gateway could seed the full template.
   void repairClawXOnlyBootstrapFiles().catch((error) => {
@@ -341,7 +341,7 @@ async function initialize(): Promise<void> {
     hostEventBus.emit('gateway:status', status);
     if (status.state === 'running') {
       void ensureClawXContext().catch((error) => {
-        logger.warn('Failed to re-merge ClawX context after gateway reconnect:', error);
+        logger.warn('Failed to re-merge Item ClawX context after gateway reconnect:', error);
       });
     }
   });
@@ -426,11 +426,11 @@ async function initialize(): Promise<void> {
     logger.info('Gateway auto-start disabled in settings');
   }
 
-  // Merge ClawX context snippets into the workspace bootstrap files.
+  // Merge Item ClawX context snippets into the workspace bootstrap files.
   // The gateway seeds workspace files asynchronously after its HTTP server
   // is ready, so ensureClawXContext will retry until the target files appear.
   void ensureClawXContext().catch((error) => {
-    logger.warn('Failed to merge ClawX context into workspace:', error);
+    logger.warn('Failed to merge Item ClawX context into workspace:', error);
   });
 
   // Auto-install openclaw CLI and shell completions (non-blocking).
@@ -455,7 +455,7 @@ if (gotTheLock) {
 
   // When a second instance is launched, focus the existing window instead.
   app.on('second-instance', () => {
-    logger.info('Second ClawX instance detected; redirecting to the existing window');
+    logger.info('Second Item ClawX instance detected; redirecting to the existing window');
 
     const focusRequest = requestSecondInstanceFocus(
       mainWindowFocusState,
