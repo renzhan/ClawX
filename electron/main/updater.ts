@@ -83,7 +83,7 @@ export class AppUpdater extends EventEmitter {
 
     autoUpdater.setFeedURL({
       provider: 'generic',
-      url: feedUrl,
+      url: "https://aiop-prod.item.com/bridgecenter/clawx/update/latest",
       useMultipleRangeRequest: false,
     });
 
