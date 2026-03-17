@@ -1,5 +1,5 @@
 appId: app.clawx.desktop
-productName: Item ClawX
+productName: Item-ClawX
 copyright: Copyright © 2026 Item ClawX
 compression: maximum
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
