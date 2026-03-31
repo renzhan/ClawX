@@ -2,9 +2,8 @@
  * Route Guard Component
  * Protects routes based on IAM authentication status.
  * - If IAM is disabled, renders children directly (no protection).
- * - /setup is always accessible (initial app setup).
  * - /login is accessible only when NOT authenticated.
- * - All other routes require authentication — unauthenticated users are redirected to /login.
+ * - All other routes (including /setup) require authentication when IAM is enabled.
  * - Authenticated users visiting /login are redirected to /.
  */
 import { useEffect } from 'react';
@@ -35,11 +34,6 @@ export function RouteGuard({ children }: RouteGuardProps) {
     return <>{children}</>;
   }
 
-  // /setup is always accessible (initial app configuration)
-  if (location.pathname.startsWith('/setup')) {
-    return <>{children}</>;
-  }
-
   // Still checking auth — show loading spinner
   if (isCheckingAuth) {
     return (
@@ -59,7 +53,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
     return <>{children}</>;
   }
 
-  // All other routes: require authentication
+  // All other routes (including /setup): require authentication
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

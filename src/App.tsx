@@ -113,9 +113,11 @@ function App() {
     initGateway();
   }, [initGateway]);
 
-  // Redirect to setup wizard if not complete
+  // Redirect to setup wizard if not complete.
+  // When IAM is enabled, RouteGuard handles the /login redirect first;
+  // this effect only fires after the user is authenticated (or IAM is off).
   useEffect(() => {
-    if (!setupComplete && !location.pathname.startsWith('/setup')) {
+    if (!setupComplete && !location.pathname.startsWith('/setup') && !location.pathname.startsWith('/login')) {
       navigate('/setup');
     }
   }, [setupComplete, location.pathname, navigate]);

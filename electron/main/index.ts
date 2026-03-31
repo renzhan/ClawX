@@ -318,9 +318,11 @@ async function initialize(): Promise<void> {
       // Auto-provision Item provider with IAM user credentials
       const user = await iamService.getCurrentUser();
       if (user?.username) {
-        setupItemProvider(user.username).catch((err) => {
+        try {
+          await setupItemProvider(user.username);
+        } catch (err) {
           logger.warn('[Item] Provider auto-setup on startup failed (non-blocking):', err);
-        });
+        }
       }
 
       const backupService = getBackupService();

@@ -56,6 +56,25 @@ interface TranscriptLineShape {
   };
 }
 
+/**
+ * Estimate token count from text content.
+ * Workaround for OpenClaw runtime not recording usage for some providers (e.g. openai-completions).
+ * Rough heuristic: ~1 token per 4 chars for Latin text, ~2 tokens per CJK character.
+ */
+function estimateTokenCount(text: string): number {
+  if (!text) return 0;
+  let count = 0;
+  for (const ch of text) {
+    // CJK characters typically use ~2 tokens each
+    if (ch.charCodeAt(0) > 0x2e80) {
+      count += 2;
+    } else {
+      count += 0.25;
+    }
+  }
+  return Math.max(Math.ceil(count), 1);
+}
+
 function normalizeUsageContent(value: unknown): string | undefined {
   if (typeof value === 'string') {
     const trimmed = value.trim();

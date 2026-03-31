@@ -9,6 +9,7 @@
 
 import { ITEM_GATEWAY_CONFIG } from '../../utils/config';
 import { getProviderService } from '../providers/provider-service';
+import { syncDefaultProviderToRuntime } from '../providers/provider-runtime-sync';
 import type { ProviderAccount } from '../../shared/providers/types';
 import { logger } from '../../utils/logger';
 
@@ -64,6 +65,7 @@ async function fetchItemJwt(userName: string): Promise<string> {
 /**
  * Auto-provision the Item provider after IAM login.
  * Creates the provider account if it doesn't exist, updates the JWT key, and sets it as default.
+ * De-duplicates: if any account with vendorId='item' already exists, reuse it instead of creating a new one.
  */
 export async function setupItemProvider(userName: string): Promise<void> {
   try {
@@ -71,6 +73,8 @@ export async function setupItemProvider(userName: string): Promise<void> {
     const providerService = getProviderService();
     const now = new Date().toISOString();
 
+    // Check for existing account by fixed ID first
+    let targetAccountId = ITEM_ACCOUNT_ID;
     const existing = await providerService.getAccount(ITEM_ACCOUNT_ID);
 
     if (existing) {
@@ -80,27 +84,41 @@ export async function setupItemProvider(userName: string): Promise<void> {
       }, jwt);
       logger.info('[Item] Updated existing Item provider with new JWT');
     } else {
-      // Create new account
-      const account: ProviderAccount = {
-        id: ITEM_ACCOUNT_ID,
-        vendorId: 'item',
-        label: 'Item (IAM)',
-        authMode: 'api_key',
-        baseUrl: ITEM_GATEWAY_CONFIG.BASE_URL,
-        apiProtocol: 'openai-completions',
-        model: 'gpt-5.1',
-        enabled: true,
-        isDefault: true,
-        createdAt: now,
-        updatedAt: now,
-      };
-      await providerService.createAccount(account, jwt);
-      logger.info('[Item] Created Item provider account');
+      // Check if any other Item vendor account exists (e.g. created during onboard)
+      const allAccounts = await providerService.listAccounts();
+      const existingItemAccount = allAccounts.find((a) => a.vendorId === 'item');
+
+      if (existingItemAccount) {
+        // Reuse existing Item account — just update its JWT
+        targetAccountId = existingItemAccount.id;
+        await providerService.updateAccount(targetAccountId, {
+          updatedAt: now,
+        }, jwt);
+        logger.info('[Item] Updated existing Item account', targetAccountId, 'with new JWT');
+      } else {
+        // Create new account
+        const account: ProviderAccount = {
+          id: ITEM_ACCOUNT_ID,
+          vendorId: 'item',
+          label: 'Item (IAM)',
+          authMode: 'api_key',
+          baseUrl: ITEM_GATEWAY_CONFIG.BASE_URL,
+          apiProtocol: 'openai-completions',
+          model: 'gpt-5.1',
+          enabled: true,
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+        };
+        await providerService.createAccount(account, jwt);
+        logger.info('[Item] Created Item provider account');
+      }
     }
 
-    // Set as default
-    await providerService.setDefaultAccount(ITEM_ACCOUNT_ID);
-    logger.info('[Item] Set Item as default provider');
+    // Set as default and sync to OpenClaw runtime config
+    await providerService.setDefaultAccount(targetAccountId);
+    await syncDefaultProviderToRuntime(targetAccountId);
+    logger.info('[Item] Set Item as default provider and synced to runtime');
   } catch (error) {
     logger.error('[Item] Failed to auto-setup Item provider:', error);
     // Don't throw — login should still succeed even if provider setup fails

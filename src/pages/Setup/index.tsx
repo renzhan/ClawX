@@ -942,6 +942,13 @@ function ProviderContent({
           setBaseUrl(savedProvider?.baseUrl || info?.defaultBaseUrl || '');
           setModelId(savedProvider?.model || info?.defaultModelId || '');
           setApiProtocol(savedProvider?.apiProtocol || 'openai-completions');
+
+          // If the provider already has a stored key (e.g. Item auto-provisioned via IAM),
+          // mark as configured so the user can proceed without re-validating
+          if (storedKey && preferredAccount) {
+            onConfiguredChange(true);
+            setKeyValid(true);
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -950,7 +957,7 @@ function ProviderContent({
       }
     })();
     return () => { cancelled = true; };
-  }, [onApiKeyChange, selectedProvider, providers]);
+  }, [onApiKeyChange, onConfiguredChange, selectedProvider, providers]);
 
   useEffect(() => {
     if (!providerMenuOpen) return;

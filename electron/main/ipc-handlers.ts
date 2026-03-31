@@ -2104,10 +2104,13 @@ function registerIAMHandlers(): void {
       const authState = await iamService.startOAuthLogin();
 
       // Auto-provision Item provider with IAM user's credentials
+      // Await so the provider account + JWT key are stored before renderer proceeds
       if (authState.isAuthenticated && authState.user?.username) {
-        setupItemProvider(authState.user.username).catch((err) => {
+        try {
+          await setupItemProvider(authState.user.username);
+        } catch (err) {
           logger.warn('[IAM] Item provider auto-setup failed (non-blocking):', err);
-        });
+        }
       }
 
       return { success: true, data: authState };
