@@ -2,18 +2,17 @@
  * Auto-Updater Module
  * Handles automatic application updates using electron-updater
  *
- * Update providers are configured in electron-builder.yml (OSS primary, GitHub fallback).
- * For prerelease channels (alpha, beta), the feed URL is overridden at runtime
- * to point at the channel-specific OSS directory (e.g. /alpha/, /beta/).
+ * macOS: 绕过 Squirrel.Mac 签名校验，使用 shell 脚本解压替换安装
+ * Windows/Linux: 走原生 electron-updater 安装流程
  */
 import { autoUpdater, UpdateInfo, ProgressInfo, UpdateDownloadedEvent } from 'electron-updater';
 import { BrowserWindow, app, ipcMain } from 'electron';
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { setQuitting } from './app-state';
-
-/** Base CDN URL (without trailing channel path) */
-const OSS_BASE_URL = 'https://oss.intelli-spectrum.com';
+import { spawn } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
 export interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -46,6 +45,8 @@ export class AppUpdater extends EventEmitter {
   private status: UpdateStatus = { status: 'idle' };
   private autoInstallTimer: NodeJS.Timeout | null = null;
   private autoInstallCountdown = 0;
+  /** 保存下载完成的 zip 文件路径（macOS 手动安装用） */
+  private downloadedFilePath: string | null = null;
 
   /** Delay (in seconds) before auto-installing a downloaded update. */
   private static readonly AUTO_INSTALL_DELAY_SECONDS = 5;
@@ -53,15 +54,20 @@ export class AppUpdater extends EventEmitter {
   constructor() {
     super();
 
-    // EventEmitter treats an unhandled 'error' event as fatal. Keep a default
-    // listener so updater failures surface in logs/UI without terminating main.
     this.on('error', (error: Error) => {
       logger.error('[Updater] AppUpdater emitted error:', error);
     });
-    
+
     autoUpdater.autoDownload = false;
-    autoUpdater.autoInstallOnAppQuit = true;
-    
+
+    // macOS: 禁止 Squirrel.Mac 自动介入，由自定义逻辑处理安装
+    // Windows/Linux: 走原生安装流程
+    if (process.platform === 'darwin') {
+      autoUpdater.autoInstallOnAppQuit = false;
+    } else {
+      autoUpdater.autoInstallOnAppQuit = true;
+    }
+
     autoUpdater.logger = {
       info: (msg: string) => logger.info('[Updater]', msg),
       warn: (msg: string) => logger.warn('[Updater]', msg),
@@ -69,44 +75,30 @@ export class AppUpdater extends EventEmitter {
       debug: (msg: string) => logger.debug('[Updater]', msg),
     };
 
-    // Override feed URL for prerelease channels so that
-    // alpha -> /alpha/alpha-mac.yml, beta -> /beta/beta-mac.yml, etc.
     const version = app.getVersion();
     const channel = detectChannel(version);
-    const feedUrl = `${OSS_BASE_URL}/${channel}`;
 
-    logger.info(`[Updater] Version: ${version}, channel: ${channel}, feedUrl: ${feedUrl}`);
+    logger.info(`[Updater] Version: ${version}, channel: ${channel}`);
 
-    // Set channel so electron-updater requests the correct yml filename.
-    // e.g. channel "alpha" → requests alpha-mac.yml, channel "latest" → requests latest-mac.yml
     autoUpdater.channel = channel;
 
     autoUpdater.setFeedURL({
       provider: 'generic',
-      url: "https://aiop-prod.item.com/bridgecenter/clawx/update/latest",
+      url: 'https://aiop-prod.item.com/bridgecenter/clawx/update/latest',
       useMultipleRangeRequest: false,
     });
 
     this.setupListeners();
   }
 
-  /**
-   * Set the main window for sending update events
-   */
   setMainWindow(window: BrowserWindow): void {
     this.mainWindow = window;
   }
 
-  /**
-   * Get current update status
-   */
   getStatus(): UpdateStatus {
     return this.status;
   }
 
-  /**
-   * Setup auto-updater event listeners
-   */
   private setupListeners(): void {
     autoUpdater.on('checking-for-update', () => {
       this.updateStatus({ status: 'checking' });
@@ -129,6 +121,10 @@ export class AppUpdater extends EventEmitter {
     });
 
     autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+      // 保存下载的文件路径，macOS 手动安装时使用
+      this.downloadedFilePath = (event as any).downloadedFile || null;
+      logger.info(`[Updater] Update downloaded: ${this.downloadedFilePath}`);
+
       this.updateStatus({ status: 'downloaded', info: event });
       this.emit('update-downloaded', event);
 
@@ -143,9 +139,6 @@ export class AppUpdater extends EventEmitter {
     });
   }
 
-  /**
-   * Update status and notify renderer
-   */
   private updateStatus(newStatus: Partial<UpdateStatus>): void {
     this.status = {
       status: newStatus.status ?? this.status.status,
@@ -156,30 +149,16 @@ export class AppUpdater extends EventEmitter {
     this.sendToRenderer('update:status-changed', this.status);
   }
 
-  /**
-   * Send event to renderer process
-   */
   private sendToRenderer(channel: string, data: unknown): void {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send(channel, data);
     }
   }
 
-  /**
-   * Check for updates.
-   * electron-updater automatically tries providers defined in electron-builder.yml in order.
-   *
-   * In dev mode (not packed), autoUpdater.checkForUpdates() silently returns
-   * null without emitting any events, so we must detect this and force a
-   * final status so the UI never gets stuck in 'checking'.
-   */
   async checkForUpdates(): Promise<UpdateInfo | null> {
     try {
       const result = await autoUpdater.checkForUpdates();
 
-      // In dev mode (app not packaged), autoUpdater silently returns null
-      // without emitting ANY events (not even checking-for-update).
-      // Detect this and force an error so the UI never stays silent.
       if (result == null) {
         this.updateStatus({
           status: 'error',
@@ -188,7 +167,6 @@ export class AppUpdater extends EventEmitter {
         return null;
       }
 
-      // Safety net: if events somehow didn't fire, force a final state.
       if (this.status.status === 'checking' || this.status.status === 'idle') {
         this.updateStatus({ status: 'not-available' });
       }
@@ -201,9 +179,6 @@ export class AppUpdater extends EventEmitter {
     }
   }
 
-  /**
-   * Download available update
-   */
   async downloadUpdate(): Promise<void> {
     try {
       await autoUpdater.downloadUpdate();
@@ -214,26 +189,147 @@ export class AppUpdater extends EventEmitter {
   }
 
   /**
-   * Install update and restart.
-   *
-   * On macOS, electron-updater delegates to Squirrel.Mac (ShipIt). The
-   * native quitAndInstall() spawns ShipIt then internally calls app.quit().
-   * However, the tray close handler in index.ts intercepts window close
-   * and hides to tray unless isQuitting is true. Squirrel's internal quit
-   * sometimes fails to trigger before-quit in time, so we set isQuitting
-   * BEFORE calling quitAndInstall(). This lets the native quit flow close
-   * the window cleanly while ShipIt runs independently to replace the app.
+   * 安装更新并重启
+   * macOS: 绕过 Squirrel.Mac，使用 shell 脚本解压替换
+   * Windows/Linux: 走原生 autoUpdater.quitAndInstall()
    */
   quitAndInstall(): void {
     logger.info('[Updater] quitAndInstall called');
     setQuitting();
-    autoUpdater.quitAndInstall();
+
+    if (process.platform === 'darwin') {
+      this.manualMacInstall();
+    } else {
+      autoUpdater.quitAndInstall();
+    }
   }
 
   /**
-   * Start a countdown that auto-installs the downloaded update.
-   * Sends `update:auto-install-countdown` events to the renderer each second.
+   * macOS 手动安装：绕过 Squirrel.Mac 签名校验
+   * 1. 找到 electron-updater 已下载的 zip
+   * 2. 写一个 shell 脚本
+   * 3. 启动 detached 脚本进程
+   * 4. 退出当前 app
+   * 5. 脚本等待旧进程退出后，解压 zip 替换 .app 并重启
    */
+  private manualMacInstall(): void {
+    // 查找下载的 zip 文件
+    let zipPath = this.downloadedFilePath;
+
+    // 如果 downloadedFilePath 为空，尝试从缓存目录查找
+    if (!zipPath || !fs.existsSync(zipPath)) {
+      zipPath = this.findUpdateZip();
+    }
+
+    if (!zipPath) {
+      logger.error('[Updater] No zip file found, cannot install update');
+      this.updateStatus({ status: 'error', error: '未找到更新文件' });
+      return;
+    }
+
+    logger.info(`[Updater] Manual mac install from: ${zipPath}`);
+
+    // 当前 app 的路径，如 /Applications/Item-ClawX.app
+    const appPath = app.getPath('exe').replace(/\/Contents\/MacOS\/.*$/, '');
+    const tempDir = path.join(app.getPath('temp'), `clawx-update-${Date.now()}`);
+    const scriptPath = path.join(app.getPath('temp'), `clawx-update-${Date.now()}.sh`);
+
+    const script = `#!/bin/bash
+  # 等待当前 app 进程退出
+  APP_PID=${process.pid}
+  while kill -0 $APP_PID 2>/dev/null; do
+    sleep 0.5
+  done
+
+  # 解压更新包
+  mkdir -p "${tempDir}"
+  ditto -xk "${zipPath}" "${tempDir}"
+
+  # 找到解压出来的 .app
+  NEW_APP=$(find "${tempDir}" -maxdepth 1 -name "*.app" | head -1)
+  if [ -z "$NEW_APP" ]; then
+    echo "[ClawX Updater] Error: No .app found in update zip" >&2
+    rm -rf "${tempDir}"
+    exit 1
+  fi
+
+  # 删除旧版本，替换为新版本
+  rm -rf "${appPath}"
+  mv "$NEW_APP" "${appPath}"
+
+  # 去除 macOS 隔离属性，避免 Gatekeeper 拦截
+  xattr -cr "${appPath}" 2>/dev/null
+
+  # 重新启动新版本
+  open "${appPath}"
+
+  # 清理临时文件
+  rm -rf "${tempDir}"
+  rm -f "${scriptPath}"
+  `;
+
+    fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+
+    // 启动 detached 脚本进程（app 退出后继续运行）
+    const child = spawn('/bin/bash', [scriptPath], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+
+    logger.info('[Updater] Update script launched, quitting app...');
+    app.quit();
+  }
+
+  /**
+   * 从 electron-updater 缓存目录中查找已下载的 zip 文件
+   */
+  private findUpdateZip(): string | null {
+    // electron-updater 的缓存目录
+    const possibleDirs = [
+      path.join(app.getPath('home'), 'Library', 'Caches', `${app.name}-updater`),
+      path.join(app.getPath('home'), 'Library', 'Caches', app.name),
+      path.join(app.getPath('userData'), 'pending'),
+    ];
+
+    for (const dir of possibleDirs) {
+      const found = this.findZipInDir(dir);
+      if (found) {
+        logger.info(`[Updater] Found update zip in: ${dir}`);
+        return found;
+      }
+    }
+
+    logger.warn(`[Updater] No update zip found in any cache directory`);
+    return null;
+  }
+
+  /**
+   * 递归查找目录中的 zip 文件
+   */
+  private findZipInDir(dir: string): string | null {
+    if (!fs.existsSync(dir)) return null;
+
+    try {
+      const items = fs.readdirSync(dir);
+      for (const item of items) {
+        const fullPath = path.join(dir, item);
+        const stat = fs.statSync(fullPath);
+        if (item.endsWith('.zip') && stat.isFile()) {
+          return fullPath;
+        }
+        if (stat.isDirectory()) {
+          const found = this.findZipInDir(fullPath);
+          if (found) return found;
+        }
+      }
+    } catch (e) {
+      logger.warn(`[Updater] Error scanning directory ${dir}: ${e}`);
+    }
+
+    return null;
+  }
+
   private startAutoInstallCountdown(): void {
     this.clearAutoInstallTimer();
     this.autoInstallCountdown = AppUpdater.AUTO_INSTALL_DELAY_SECONDS;
@@ -262,23 +358,14 @@ export class AppUpdater extends EventEmitter {
     }
   }
 
-  /**
-   * Set update channel (stable, beta, dev)
-   */
   setChannel(channel: 'stable' | 'beta' | 'dev'): void {
     autoUpdater.channel = channel;
   }
 
-  /**
-   * Set auto-download preference
-   */
   setAutoDownload(enable: boolean): void {
     autoUpdater.autoDownload = enable;
   }
 
-  /**
-   * Get current version
-   */
   getCurrentVersion(): string {
     return app.getVersion();
   }
@@ -288,23 +375,19 @@ export class AppUpdater extends EventEmitter {
  * Register IPC handlers for update operations
  */
 export function registerUpdateHandlers(
-  updater: AppUpdater,
-  mainWindow: BrowserWindow
+    updater: AppUpdater,
+    mainWindow: BrowserWindow
 ): void {
   updater.setMainWindow(mainWindow);
 
-  // Get current update status
   ipcMain.handle('update:status', () => {
     return updater.getStatus();
   });
 
-  // Get current version
   ipcMain.handle('update:version', () => {
     return updater.getCurrentVersion();
   });
 
-  // Check for updates – always return final status so the renderer
-  // never gets stuck in 'checking' waiting for a push event.
   ipcMain.handle('update:check', async () => {
     try {
       await updater.checkForUpdates();
@@ -314,7 +397,6 @@ export function registerUpdateHandlers(
     }
   });
 
-  // Download update
   ipcMain.handle('update:download', async () => {
     try {
       await updater.downloadUpdate();
@@ -324,30 +406,25 @@ export function registerUpdateHandlers(
     }
   });
 
-  // Install update and restart
   ipcMain.handle('update:install', () => {
     updater.quitAndInstall();
     return { success: true };
   });
 
-  // Set update channel
   ipcMain.handle('update:setChannel', (_, channel: 'stable' | 'beta' | 'dev') => {
     updater.setChannel(channel);
     return { success: true };
   });
 
-  // Set auto-download preference
   ipcMain.handle('update:setAutoDownload', (_, enable: boolean) => {
     updater.setAutoDownload(enable);
     return { success: true };
   });
 
-  // Cancel pending auto-install countdown
   ipcMain.handle('update:cancelAutoInstall', () => {
     updater.cancelAutoInstall();
     return { success: true };
   });
-
 }
 
 // Export singleton instance
